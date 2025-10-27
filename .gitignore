@@ -1,0 +1,6 @@
+.env
+# Ignore common env variants but keep example
+.env.*
+!.env.example
+*.env
+kallix-env
