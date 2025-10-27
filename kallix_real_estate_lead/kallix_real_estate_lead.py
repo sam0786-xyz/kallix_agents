@@ -1,10 +1,6 @@
 # =========================================================
 # Kallix Real Estate Lead Capture (Ananya)
 # =========================================================
-# ✅ Uses FastAPI + Modal to capture leads from ElevenLabs calls
-# ✅ Sends lead data to Google Sheets via webhook
-# ✅ Logs everything for debugging
-# =========================================================
 
 import modal
 from fastapi import FastAPI, Request
@@ -15,26 +11,26 @@ from loguru import logger
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------
-# Load environment variables
+# Load local .env (for local testing only)
 # ---------------------------------------------------------
 load_dotenv()
 
 # ---------------------------------------------------------
-# Initialize Modal and FastAPI apps
+# Modal image (includes dependencies)
+# ---------------------------------------------------------
+image = (
+    modal.Image.debian_slim()
+    .pip_install("fastapi", "requests", "loguru", "python-dotenv", "uvicorn")
+)
+
+# ---------------------------------------------------------
+# Initialize Modal and FastAPI
 # ---------------------------------------------------------
 app = modal.App("kallix_real_estate_lead")
 web_app = FastAPI(title="Kallix Real Estate Lead API")
 
 # ---------------------------------------------------------
-# Environment variables
-# ---------------------------------------------------------
-GOOGLE_SHEET_WEBHOOK = os.environ.get("GOOGLE_SHEET_WEBHOOK")
-
-if not GOOGLE_SHEET_WEBHOOK:
-    logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK not set — leads won't be saved to Sheets!")
-
-# ---------------------------------------------------------
-# In-memory storage (for quick testing only)
+# In-memory storage (for local debugging only)
 # ---------------------------------------------------------
 leads = []
 
@@ -52,7 +48,6 @@ async def capture_lead(request: Request):
         required_fields = ["client_name", "phone"]
         for field in required_fields:
             if field not in data or not data[field]:
-                logger.warning(f"❌ Missing required field: {field}")
                 return {"status": "error", "message": f"Missing field: {field}"}
 
         # Build lead entry
@@ -66,13 +61,12 @@ async def capture_lead(request: Request):
             "timestamp": datetime.now().isoformat() + "Z"
         }
 
-        # Store locally (temporary buffer)
         leads.append(lead)
         logger.info(f"🧾 Lead appended locally: {lead['client_name']}")
 
-        # -------------------------------------------------
-        # Send data to Google Sheet via Apps Script webhook
-        # -------------------------------------------------
+        # Get webhook from environment (Modal injects secrets as env vars)
+        GOOGLE_SHEET_WEBHOOK = os.environ.get("GOOGLE_SHEET_WEBHOOK")
+
         if GOOGLE_SHEET_WEBHOOK:
             try:
                 resp = requests.post(
@@ -90,7 +84,7 @@ async def capture_lead(request: Request):
             except Exception as e:
                 logger.error(f"❌ Error sending to Google Sheet: {e}")
         else:
-            logger.warning("⚠️ Skipped sending to Google Sheets (no webhook set).")
+            logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK not set — skipped sending to Sheets.")
 
         return {"status": "success", "message": "Lead captured successfully!"}
 
@@ -98,12 +92,10 @@ async def capture_lead(request: Request):
         logger.exception(f"🔥 Unexpected error in capture_lead: {e}")
         return {"status": "error", "message": "Internal Server Error"}
 
-
 # ---------------------------------------------------------
 # Modal Deployment Wrapper
 # ---------------------------------------------------------
-@app.function()
+@app.function(image=image, secrets=[modal.Secret.from_name("kallix-secrets")])
 @modal.asgi_app()
 def fastapi_app():
-    """Deploy FastAPI app to Modal as a web endpoint."""
     return web_app
