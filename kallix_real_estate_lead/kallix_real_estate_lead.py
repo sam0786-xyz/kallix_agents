@@ -34,7 +34,7 @@ if not GOOGLE_SHEET_WEBHOOK:
     logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK not set — leads won't be saved to Sheets!")
 
 # ---------------------------------------------------------
-# Local storage (for debugging only)
+# In-memory storage (for quick testing only)
 # ---------------------------------------------------------
 leads = []
 
@@ -55,32 +55,38 @@ async def capture_lead(request: Request):
                 logger.warning(f"❌ Missing required field: {field}")
                 return {"status": "error", "message": f"Missing field: {field}"}
 
-        # Prepare lead dictionary
+        # Build lead entry
         lead = {
             "client_name": data.get("client_name"),
             "phone": data.get("phone"),
-            "email": data.get("email"),
-            "demo_time": data.get("demo_time"),
+            "email": data.get("email", ""),
+            "demo_time": data.get("demo_time", ""),
             "remarks": data.get("remarks", ""),
             "agent": data.get("agent_name", "Ananya"),
             "industry": "Real Estate",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
-        # Save locally for temporary reference
+        # Store locally (temporary buffer)
         leads.append(lead)
+        logger.info(f"🧾 Lead appended locally: {lead['client_name']}")
 
         # -------------------------------------------------
         # Send data to Google Sheet via Apps Script webhook
         # -------------------------------------------------
         if GOOGLE_SHEET_WEBHOOK:
             try:
-                response = requests.post(GOOGLE_SHEET_WEBHOOK, json=lead, timeout=5)
-                if response.status_code == 200:
-                    logger.info("✅ Lead successfully sent to Google Sheet.")
+                resp = requests.post(
+                    GOOGLE_SHEET_WEBHOOK,
+                    json=lead,
+                    timeout=5,
+                    headers={"Content-Type": "application/json"},
+                )
+                if resp.status_code == 200:
+                    logger.success("✅ Lead successfully sent to Google Sheet.")
                 else:
                     logger.warning(
-                        f"⚠️ Google Sheet responded with {response.status_code}: {response.text}"
+                        f"⚠️ Google Sheet responded with {resp.status_code}: {resp.text}"
                     )
             except Exception as e:
                 logger.error(f"❌ Error sending to Google Sheet: {e}")
@@ -102,11 +108,3 @@ async def capture_lead(request: Request):
 def fastapi_app():
     """Deploy FastAPI app to Modal as a web endpoint."""
     return web_app
-
-
-# ---------------------------------------------------------
-# Local run for debugging (only used outside Modal)
-# ---------------------------------------------------------
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(web_app, host="0.0.0.0", port=8000)
