@@ -64,7 +64,7 @@ async def capture_lead(request: Request):
             "remarks": data.get("remarks", ""),
             "agent": data.get("agent_name", "Ananya"),
             "industry": "Real Estate",
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.now().isoformat() + "Z"
         }
 
         # Store locally (temporary buffer)
