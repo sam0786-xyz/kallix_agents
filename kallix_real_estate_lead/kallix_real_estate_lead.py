@@ -63,7 +63,6 @@ async def capture_lead(request: Request):
             "demo_time": data.get("demo_time", ""),
             "remarks": data.get("remarks", ""),
             "agent": data.get("agent_name", "Ananya"),
-            "industry": "Real Estate",
             "timestamp": datetime.now().isoformat() + "Z"
         }
 
