@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+modal
+requests
+httpx
+python-dotenv
+pydantic
+certifi
+loguru
+google-auth
+google-auth-oauthlib
+google-api-python-client
