@@ -1,38 +1,42 @@
 import streamlit as st
-import os
+from utils.elevenlabs_tools import fetch_sessions, get_session_details
 
-# =========================================================
-# 🎧 Voice / Audio Tool
-# =========================================================
 def voice_audio_tool():
-    st.write("🎧 Play or Download AI Call Audio")
+    st.write("🎧 **AI Voice Recordings (Synced from ElevenLabs)**")
 
-    uploaded_audio = st.file_uploader("Upload Audio File", type=["mp3", "wav"])
-    if uploaded_audio:
-        st.audio(uploaded_audio, format="audio/mp3")
-        st.download_button(
-            label="📥 Download Audio",
-            data=uploaded_audio,
-            file_name=uploaded_audio.name
-        )
-    else:
-        st.info("No audio uploaded yet. You can play ElevenLabs recordings here later.")
+    agent_map = {
+        "Ananya (Real Estate)": "agent_id_real_estate",
+        "Aisha (Chiropractor)": "agent_id_chiro",
+        "Mira (E-Commerce)": "agent_id_ecom"
+    }
 
-# =========================================================
-# 🗒️ Transcription Tool
-# =========================================================
-def transcription_tool():
-    st.write("🗒️ Transcription Viewer / Downloader")
+    selected_agent = st.selectbox("Select Agent", list(agent_map.keys()))
+    agent_id = agent_map[selected_agent]
 
-    uploaded_txt = st.file_uploader("Upload Transcription File", type=["txt"])
-    if uploaded_txt:
-        st.success(f"Transcription file uploaded: {uploaded_txt.name}")
-        transcript = uploaded_txt.read().decode("utf-8")
-        st.text_area("Transcription Content", transcript, height=250)
-        st.download_button(
-            label="📥 Download Transcription",
-            data=transcript,
-            file_name=uploaded_txt.name
-        )
-    else:
-        st.info("Upload or view transcription text files from AI calls here.")
+    sessions = fetch_sessions(agent_id)
+    if not sessions:
+        st.info("No call sessions found for this agent.")
+        return
+
+    session_ids = [s["session_id"] for s in sessions]
+    selected_session = st.selectbox("Select Call Session", session_ids)
+
+    if selected_session:
+        details = get_session_details(agent_id, selected_session)
+        if not details:
+            st.warning("No details available.")
+            return
+
+        st.markdown(f"**Client:** {details.get('client_name', 'Unknown')}")
+        st.markdown(f"**Call Duration:** {details.get('duration', 'N/A')} seconds")
+
+        audio_url = details.get("audio_url")
+        transcript = details.get("transcript")
+
+        if audio_url:
+            st.audio(audio_url, format="audio/mp3")
+
+        if transcript:
+            with st.expander("🗒️ View Transcription"):
+                st.text_area("Transcription", transcript, height=250)
+                st.download_button("📥 Download Transcription", transcript, file_name=f"{selected_session}.txt")

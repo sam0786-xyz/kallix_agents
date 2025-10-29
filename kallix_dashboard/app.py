@@ -10,6 +10,8 @@ from utils.email_tools import email_tool
 from utils.audio_tools import voice_audio_tool, transcription_tool
 from utils.exotel_tools import phone_tool
 from utils.llm_agent_tools import agent_selector, knowledge_base_tool
+from utils.audio_tools import voice_audio_tool
+
 
 # =========================================================
 # 🔧 PAGE CONFIGURATION  — must be first Streamlit command
