@@ -1,19 +1,22 @@
-import streamlit as st
+import streamlit as st, requests, json, os
 
-def phone_tool(agent, account_sid, trial_number, flow_id):
-    st.write(f"📞 Connect or Trigger Calls for **{agent}**")
-    st.markdown("Use your registered Exotel number to handle AI-powered calls.")
-    
-    st.markdown(f"""
-    **Exotel Account SID:** `{account_sid}`  
-    **Trial Number:** `{trial_number}`  
-    **Flow ID:** `{flow_id}`
-    """)
+def _cfg():
+    return json.load(open("client_config.json")) if os.path.exists("client_config.json") else {}
 
-    phone_number = st.text_input("Enter client phone number to call")
-    if st.button("Trigger Exotel Call"):
-        if phone_number:
-            st.success(f"📞 AI Agent ({agent}) will call {phone_number} via Exotel Flow {flow_id}.")
-            st.info("Note: Once Exotel setup is active, this button will trigger real calls.")
-        else:
-            st.warning("Please enter a phone number first.")
+def phone_tool(agent_name=None, account_sid=None, trial_number=None, flow_id=None):
+    c = _cfg()
+    sid = account_sid or c.get("exotel_sid")
+    num = trial_number or c.get("exotel_trial_number")
+    flow = flow_id or c.get("exotel_flow_id")
+    key, token = c.get("exotel_api_key"), c.get("exotel_api_token")
+
+    st.write(f"Account: `{sid}`  |  Trial No: `{num}`  |  Flow ID: `{flow}`")
+    phone = st.text_input("Client Phone Number")
+    if st.button("Start Call"):
+        if not phone: return st.warning("Enter number first.")
+        if not key or not token:
+            return st.success(f"Simulated call to {phone} from {num}")
+        url = f"https://api.exotel.com/v1/Accounts/{sid}/Calls/connect.json"
+        payload = {"From": num, "To": phone, "CallerId": num, "Url": ""}
+        r = requests.post(url, data=payload, auth=(key, token))
+        st.write(r.text if r.ok else f"Error: {r.status_code}")

@@ -1,25 +1,16 @@
-import requests
-import streamlit as st
-import os
+import os, requests
+from dotenv import load_dotenv
+load_dotenv()
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
-def fetch_sessions(agent_id: str):
-    """Fetch all call sessions for a specific ElevenLabs agent."""
+def fetch_sessions(agent_id):
+    if not ELEVENLABS_API_KEY: raise RuntimeError("No ELEVENLABS_API_KEY set")
     url = f"https://api.elevenlabs.io/v1/agents/{agent_id}/sessions"
-    headers = {"Authorization": f"Bearer {ELEVENLABS_API_KEY}"}
-    resp = requests.get(url, headers=headers)
-    if not resp.ok:
-        st.error(f"Failed to fetch sessions: {resp.text}")
-        return []
-    return resp.json()
+    r = requests.get(url, headers={"Authorization": f"Bearer {ELEVENLABS_API_KEY}"}, timeout=10)
+    return r.json() if r.status_code == 200 else []
 
-def get_session_details(agent_id: str, session_id: str):
-    """Fetch details (audio + transcript) for a specific session."""
+def get_session_details(agent_id, session_id):
     url = f"https://api.elevenlabs.io/v1/agents/{agent_id}/sessions/{session_id}"
-    headers = {"Authorization": f"Bearer {ELEVENLABS_API_KEY}"}
-    resp = requests.get(url, headers=headers)
-    if not resp.ok:
-        st.error(f"Error fetching session: {resp.text}")
-        return None
-    return resp.json()
+    r = requests.get(url, headers={"Authorization": f"Bearer {ELEVENLABS_API_KEY}"}, timeout=10)
+    return r.json() if r.status_code == 200 else None
