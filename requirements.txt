@@ -10,3 +10,8 @@ loguru
 google-auth
 google-auth-oauthlib
 google-api-python-client
+streamlit
+requests
+pandas
+google-auth
+google-api-python-client
