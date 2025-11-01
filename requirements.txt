@@ -6,15 +6,15 @@
 fastapi
 uvicorn
 modal
-python-dotenv
+python-dotenv>=1.0.1
 loguru
 
 # --- Web + Networking ---
-requests
+requests>=2.31.0
 httpx
 
 # --- Streamlit Frontend ---
-streamlit
+streamlit>=1.31.0
 pandas
 
 # --- Google & Email Tools ---
@@ -33,3 +33,6 @@ elevenlabs
 
 # --- Utilities ---
 python-dateutil
+pydantic>=2.6.0
+PyJWT>=2.8.0
+PyPDF2>=3.0.1

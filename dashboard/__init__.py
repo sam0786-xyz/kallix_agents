@@ -1,0 +1,2 @@
+"""Kallix Agents Dashboard package."""
+
