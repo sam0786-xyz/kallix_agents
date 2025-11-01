@@ -64,11 +64,12 @@ async def capture_lead(request: Request):
         leads.append(lead)
         logger.info(f"🧾 Lead appended locally: {lead['client_name']}")
 
-        GOOGLE_SHEET_WEBHOOK = os.environ.get("GOOGLE_SHEET_WEBHOOK")
+        # Get Chiropractor Webhook
+        GOOGLE_SHEET_WEBHOOK_CHIROPACTOR = os.environ.get("GOOGLE_SHEET_WEBHOOK_CHIROPACTOR")
 
-        if GOOGLE_SHEET_WEBHOOK:
+        if GOOGLE_SHEET_WEBHOOK_CHIROPACTOR:
             resp = requests.post(
-                GOOGLE_SHEET_WEBHOOK,
+                GOOGLE_SHEET_WEBHOOK_CHIROPACTOR,
                 json=lead,
                 timeout=5,
                 headers={"Content-Type": "application/json"},
@@ -80,7 +81,7 @@ async def capture_lead(request: Request):
                     f"⚠️ Google Sheet responded with {resp.status_code}: {resp.text}"
                 )
         else:
-            logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK not set — skipped sending to Sheets.")
+            logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK_CHIROPACTOR not set — skipped sending to Sheets.")
 
         return {"status": "success", "message": "Lead captured successfully!"}
 
