@@ -1,27 +1,12 @@
-# =========================================================
-# 🧠 Kallix Real Estate Lead & Audio Capture API
-# =========================================================
-# ✅ Handles lead capture from ElevenLabs agents
-# ✅ Handles audio + transcription upload for dashboard
-# ✅ Sends both to Google Sheets for reference
-# =========================================================
-
 import modal
 from fastapi import FastAPI, Request
-import requests
-import os
+import requests, os
 from datetime import datetime
 from loguru import logger
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------
-# 🔧 Load environment (for local testing)
-# ---------------------------------------------------------
 load_dotenv()
 
-# ---------------------------------------------------------
-# 🧰 Modal Image & App Config
-# ---------------------------------------------------------
 image = (
     modal.Image.debian_slim()
     .pip_install("fastapi", "requests", "loguru", "python-dotenv", "uvicorn")
@@ -30,26 +15,11 @@ image = (
 app = modal.App("kallix_real_estate_lead")
 web_app = FastAPI(title="Kallix Real Estate Lead API")
 
-# ---------------------------------------------------------
-# 📦 Temporary In-memory storage (for testing only)
-# ---------------------------------------------------------
-leads = []
-
-# =========================================================
-# 📞 1. Capture Lead from ElevenLabs Agent
-# =========================================================
 @web_app.post("/capture-lead")
 async def capture_lead(request: Request):
-    """Capture lead details sent from ElevenLabs agent webhook."""
     try:
         data = await request.json()
-        logger.info(f"📩 Incoming lead data: {data}")
-
-        # Basic validation
-        required_fields = ["client_name", "phone"]
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return {"status": "error", "message": f"Missing field: {field}"}
+        logger.info(f"📩 Incoming Real Estate Lead: {data}")
 
         lead = {
             "client_name": data.get("client_name"),
@@ -61,37 +31,18 @@ async def capture_lead(request: Request):
             "timestamp": datetime.now().isoformat() + "Z"
         }
 
-        leads.append(lead)
-        logger.info(f"🧾 Lead appended locally: {lead['client_name']}")
+        GOOGLE_SHEET_WEBHOOK_REAL_ESTATE = os.environ.get("GOOGLE_SHEET_WEBHOOK_REAL_ESTATE")
+        logger.info(f"🧩 Using Google Sheet Webhook: {GOOGLE_SHEET_WEBHOOK_REAL_ESTATE}")
 
-        GOOGLE_SHEET_WEBHOOK = os.environ.get("GOOGLE_SHEET_WEBHOOK")
+        resp = requests.post(GOOGLE_SHEET_WEBHOOK_REAL_ESTATE, json=lead, timeout=5)
+        logger.info(f"🔁 Google Sheet Response: {resp.status_code} - {resp.text}")
 
-        if GOOGLE_SHEET_WEBHOOK:
-            resp = requests.post(
-                GOOGLE_SHEET_WEBHOOK,
-                json=lead,
-                timeout=5,
-                headers={"Content-Type": "application/json"},
-            )
-            if resp.status_code == 200:
-                logger.success("✅ Lead successfully sent to Google Sheet.")
-            else:
-                logger.warning(
-                    f"⚠️ Google Sheet responded with {resp.status_code}: {resp.text}"
-                )
-        else:
-            logger.warning("⚠️ GOOGLE_SHEET_WEBHOOK not set — skipped sending to Sheets.")
-
-        return {"status": "success", "message": "Lead captured successfully!"}
+        return {"status": "success", "message": "Real Estate lead captured!"}
 
     except Exception as e:
-        logger.exception(f"🔥 Unexpected error in capture_lead: {e}")
-        return {"status": "error", "message": "Internal Server Error"}
+        logger.exception(f"🔥 Error capturing Real Estate lead: {e}")
+        return {"status": "error", "message": str(e)}
 
-
-# =========================================================
-# 🚀 3. Modal Deployment Wrapper
-# =========================================================
 @app.function(image=image, secrets=[modal.Secret.from_name("kallix-secrets")])
 @modal.asgi_app()
 def fastapi_app():
